@@ -3,8 +3,6 @@ from itertools import chain
 
 from django.utils.six import itervalues, iterkeys, iteritems
 
-from .apps import DEDConfig
-
 
 class DocumentRegistry(object):
     """
@@ -29,31 +27,41 @@ class DocumentRegistry(object):
 
         self._indices[index].add(doc_class)
 
-    def update(self, instance, **kwargs):
+    def update(self, instance, action='index', from_signal=False, **kwargs):
         """
-        Update all the elasticsearch documents attached to this model (if their
-        ignore_signals flag allows it)
+        Update all the Elasticsearch documents attached to this model.
         """
-        if DEDConfig.autosync_enabled():
-            if instance.__class__ in self._models:
-                for doc in self._models[instance.__class__]:
-                    if not doc._doc_type.ignore_signals:
-                        doc().update(instance, **kwargs)
+        connection_actions = defaultdict(set)
 
-            if instance.__class__ in self._related_models:
-                for model in self._related_models[instance.__class__]:
-                    for doc in self._models[model]:
-                        doc_instance = doc()
-                        related = doc_instance.get_instances_from_related(
+        if instance.__class__ in self._models:
+            for doc in self._models[instance.__class__]:
+                if not (from_signal and doc._doc_type.ignore_signals):
+                    doc_inst = doc()
+                    connection_actions[doc_inst.connection].add(
+                        doc_inst._get_actions([instance],
+                                              action=action, **kwargs))
+
+        if instance.__class__ in self._related_models:
+            for model in self._related_models[instance.__class__]:
+                for doc in self._models[model]:
+                    if not (from_signal and doc._doc_type.ignore_signals):
+                        doc_inst = doc()
+                        related = doc_inst.get_instances_from_related(
                             instance
                         )
                         if related:
-                            doc_instance.update(related, **kwargs)
+                            connection_actions[doc_inst.connection].add(
+                                doc_inst._get_actions(
+                                    [related],  action='index', **kwargs
+                                )
+                            )
+
+        for connection, actions in iteritems(connection_actions):
+            bulk(client=connection, actions=list(chain(*actions)), **kwargs)
 
     def delete(self, instance, **kwargs):
         """
-        Delete all the elasticsearch documents attached to this model (if their
-        ignore_signals flag allows it)
+        Delete all the elasticsearch documents attached to this model.
         """
         self.update(instance, action="delete", **kwargs)
 

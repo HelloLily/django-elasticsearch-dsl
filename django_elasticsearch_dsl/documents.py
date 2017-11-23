@@ -215,3 +215,9 @@ class DocType(DSLDocType):
         return self.bulk(
             self._get_actions(object_list, action), **kwargs
         )
+
+    def delete(self, thing, refresh=None, **kwargs):
+        """
+        Delete each document in ES for a model, iterable of models or queryset.
+        """
+        self.update(thing, refresh, 'delete', **kwargs)

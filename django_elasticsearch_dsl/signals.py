@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 from django.db import models
 
+from django_elasticsearch_dsl.apps import DEDConfig
 from .registries import registry
 
 
@@ -47,16 +48,16 @@ class BaseSignalProcessor(object):
 
         Given an individual model instance, update the object in the index.
         """
-        instance = kwargs['instance']
-        registry.update(instance)
+        if DEDConfig.autosync_enabled():
+            registry.update(kwargs['instance'], action='index', from_signal=True)
 
     def handle_delete(self, sender, **kwargs):
         """Handle delete.
 
         Given an individual model instance, delete the object from index.
         """
-        instance = kwargs['instance']
-        registry.delete(instance, raise_on_error=False)
+        if DEDConfig.autosync_enabled():
+            registry.update(kwargs['instance'], action='delete', from_signal=True)
 
 
 class RealTimeSignalProcessor(BaseSignalProcessor):

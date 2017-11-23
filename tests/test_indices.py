@@ -6,24 +6,23 @@ from django.conf import settings
 from django_elasticsearch_dsl.indices import Index
 from django_elasticsearch_dsl.registries import DocumentRegistry
 
-from .fixtures import WithFixturesMixin
+import fixtures
 
 
-class IndexTestCase(WithFixturesMixin, TestCase):
+class IndexTestCase(fixtures.WithFixturesMixin, TestCase):
+
     def test_documents_add_to_register(self):
         registry = DocumentRegistry()
         with patch('django_elasticsearch_dsl.indices.registry', new=registry):
             index = Index('test')
-            doc_a1 = self._generate_doc_mock(self.ModelA)
-            doc_a2 = self._generate_doc_mock(self.ModelA)
-            index.doc_type(doc_a1)
+            index.doc_type(fixtures.DocA1)
             docs = list(registry.get_documents())
             self.assertEqual(len(docs), 1)
-            self.assertIs(docs[0], doc_a1)
+            self.assertIs(docs[0], fixtures.DocA1)
 
-            index.doc_type(doc_a2)
+            index.doc_type(fixtures.DocA2)
             docs = registry.get_documents()
-            self.assertEqual(docs, set([doc_a1, doc_a2]))
+            self.assertEqual(docs, {fixtures.DocA1, fixtures.DocA2})
 
     def test__str__(self):
         index = Index('test')
