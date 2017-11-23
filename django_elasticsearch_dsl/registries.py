@@ -3,6 +3,8 @@ from itertools import chain
 
 from django.utils.six import itervalues, iterkeys, iteritems
 
+from django_elasticsearch_dsl.apps import DEDConfig
+
 
 class DocumentRegistry(object):
     """
@@ -55,6 +57,9 @@ class DocumentRegistry(object):
                                     [related],  action='index', **kwargs
                                 )
                             )
+
+        if 'refresh' not in kwargs and DEDConfig.auto_refresh_enabled():
+            kwargs['refresh'] = True
 
         for connection, actions in iteritems(connection_actions):
             bulk(client=connection, actions=list(chain(*actions)), **kwargs)
