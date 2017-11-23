@@ -131,7 +131,7 @@ class DocumentRegistryTestCase(fixtures.WithFixturesMixin, TestCase):
             }
         ], client=DocD().connection)
 
-    def test_update_related_isntances_not_defined(self):
+    def test_update_related_instances_not_defined(self):
         class DocD(DocType):
             get_instances_from_related = Mock(return_value=None)
 
@@ -144,6 +144,105 @@ class DocumentRegistryTestCase(fixtures.WithFixturesMixin, TestCase):
         registry = DocumentRegistry()
         registry.register(self.index_1, DocD)
         registry.update(instance)
+
+        self.bulk_mock.assert_not_called()
+
+    def test_update_from_signal(self):
+        class DocD(DocType):
+            get_instances_from_related = Mock(return_value=fixtures.ModelD())
+
+            class Meta:
+                model = fixtures.ModelD
+                related_models = [fixtures.ModelE]
+
+        class DocE(DocType):
+            class Meta:
+                model = fixtures.ModelE
+
+        instance = fixtures.ModelE()
+
+        registry = DocumentRegistry()
+        registry.register(self.index_1, DocD)
+        registry.register(self.index_1, DocE)
+        registry.update(instance, from_signal=True)
+
+        self.bulk_mock.assert_not_called()
+
+        self.bulk_mock.assert_called_once_with(actions=[
+            {
+                '_type': 'doc_e',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+            {
+                '_type': 'doc_d',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+        ], client=DocD().connection)
+
+    def test_update_signals_disabled(self):
+        class DocD(DocType):
+            get_instances_from_related = Mock(return_value=fixtures.ModelD())
+
+            class Meta:
+                model = fixtures.ModelD
+                related_models = [fixtures.ModelE]
+                ignore_signals = True
+
+        class DocE(DocType):
+            class Meta:
+                model = fixtures.ModelE
+                ignore_signals = True
+
+        instance = fixtures.ModelE()
+
+        registry = DocumentRegistry()
+        registry.register(self.index_1, DocD)
+        registry.register(self.index_1, DocE)
+        registry.update(instance)
+
+        self.bulk_mock.assert_called_once_with(actions=[
+            {
+                '_type': 'doc_e',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+            {
+                '_type': 'doc_d',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+        ], client=DocD().connection)
+
+    def test_update_signals_disabled_from_signal(self):
+        class DocD(DocType):
+            get_instances_from_related = Mock(return_value=fixtures.ModelD())
+
+            class Meta:
+                model = fixtures.ModelD
+                related_models = [fixtures.ModelE]
+                ignore_signals = True
+
+        class DocE(DocType):
+            class Meta:
+                model = fixtures.ModelE
+                ignore_signals = True
+
+        instance = fixtures.ModelE()
+
+        registry = DocumentRegistry()
+        registry.register(self.index_1, DocD)
+        registry.register(self.index_1, DocE)
+        registry.update(instance, from_signal=True)
 
         self.bulk_mock.assert_not_called()
 
