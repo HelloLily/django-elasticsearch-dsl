@@ -172,7 +172,7 @@ class DocType(DSLDocType):
             kwargs['refresh'] = True
 
         actions = ActionBuffer()
-        actions.add_doc_actions(self, thing, action)
+        actions.add_doc_actions(self.__class__, thing, action)
         return actions.execute(self.connection, **kwargs)
 
     def delete(self, thing, refresh=None, **kwargs):

@@ -2,8 +2,7 @@ from mock import Mock, patch
 from unittest import TestCase
 
 from django_elasticsearch_dsl.registries import DocumentRegistry
-
-import fixtures
+from tests import fixtures
 
 
 class DocumentRegistryTestCase(fixtures.WithFixturesMixin, TestCase):

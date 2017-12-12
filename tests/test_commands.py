@@ -6,8 +6,7 @@ from django.core.management import call_command
 from django.utils.six import StringIO
 
 from django_elasticsearch_dsl.management.commands.search_index import Command
-
-import fixtures
+from tests import fixtures
 
 
 class SearchIndexTestCase(fixtures.WithFixturesMixin, TestCase):

@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from django_elasticsearch_dsl import DocType
 from django_elasticsearch_dsl.actions import ActionBuffer
-import fixtures
+from tests import fixtures
 from tests.models import Car
 
 

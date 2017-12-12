@@ -187,7 +187,7 @@ class DocTypeTestCase(TestCase):
         doc.update(car)
 
         self.action_buffer().add_doc_actions.assert_called_with(
-            doc, car, 'index',
+            CarDocument, car, 'index',
         )
         self.action_buffer().execute.assert_called_with(
             doc.connection, refresh=True,
@@ -202,7 +202,7 @@ class DocTypeTestCase(TestCase):
         doc.update([car, car2], action='update')
 
         self.action_buffer().add_doc_actions.assert_called_with(
-            doc, [car, car2], 'update',
+            CarDocument, [car, car2], 'update',
         )
         self.action_buffer().execute.assert_called_with(
             doc.connection, refresh=True,
@@ -215,7 +215,7 @@ class DocTypeTestCase(TestCase):
         doc.update(car)
 
         self.action_buffer().add_doc_actions.assert_called_with(
-            doc, car, 'index',
+            CarDocument, car, 'index',
         )
         self.action_buffer().execute.assert_called_with(
             doc.connection

@@ -5,8 +5,7 @@ from django.db import connections
 from mock import patch
 
 from django_elasticsearch_dsl import signals
-
-import fixtures
+from tests import fixtures
 
 
 class BaseSignalProcessorTestCase(fixtures.WithFixturesMixin, TestCase):
