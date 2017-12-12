@@ -25,9 +25,7 @@ class ActionBufferTestCase(fixtures.WithFixturesMixin, TestCase):
             fixtures.DocA1, instance, action='my_action'
         )
 
-        self.assertEqual(
-            [fixtures.DocA1().connection], self.action_buffer._actions.keys()
-        )
+        self.assertEqual(1, len(self.action_buffer._actions))
 
         self.assertEqual([{
             '_type': 'doc_a1',
@@ -46,9 +44,7 @@ class ActionBufferTestCase(fixtures.WithFixturesMixin, TestCase):
             fixtures.DocA1, instances, action='my_action'
         )
 
-        self.assertEqual(
-            [fixtures.DocA1().connection], self.action_buffer._actions.keys()
-        )
+        self.assertEqual(1, len(self.action_buffer._actions))
 
         self.assertEqual([
             {
@@ -81,6 +77,8 @@ class ActionBufferTestCase(fixtures.WithFixturesMixin, TestCase):
 
         self.action_buffer.add_doc_actions(CarDocument2, [car1, car2, car3])
 
+        self.assertEqual(1, len(self.action_buffer._actions))
+
         self.assertEqual(3, len(list(chain(
             *self.action_buffer._actions[CarDocument2().connection]
         ))))
@@ -89,10 +87,7 @@ class ActionBufferTestCase(fixtures.WithFixturesMixin, TestCase):
         instance = fixtures.ModelA()
 
         self.action_buffer.add_model_actions(instance, action='my_action')
-
-        self.assertEqual(
-            [fixtures.DocA1().connection], self.action_buffer._actions.keys()
-        )
+        self.assertEqual(1, len(self.action_buffer._actions))
 
         self.assertEqual([
             {
@@ -117,10 +112,7 @@ class ActionBufferTestCase(fixtures.WithFixturesMixin, TestCase):
         instance = fixtures.ModelE()
 
         self.action_buffer.add_model_actions(instance, action='delete')
-
-        self.assertEqual(
-            [fixtures.DocA1().connection], self.action_buffer._actions.keys()
-        )
+        self.assertEqual(1, len(self.action_buffer._actions))
 
         self.assertEqual([
             {

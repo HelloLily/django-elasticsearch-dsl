@@ -5,8 +5,7 @@ from django.conf import settings
 
 from django_elasticsearch_dsl.indices import Index
 from django_elasticsearch_dsl.registries import DocumentRegistry
-
-import fixtures
+from tests import fixtures
 
 
 class IndexTestCase(fixtures.WithFixturesMixin, TestCase):
