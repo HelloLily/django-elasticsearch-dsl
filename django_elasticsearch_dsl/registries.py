@@ -1,9 +1,10 @@
 from collections import defaultdict
 from itertools import chain
 
-from django.utils.six import itervalues, iterkeys, iteritems
+from django.db.models.base import ModelBase
+from django.utils.six import iteritems, iterkeys, itervalues
 
-from django_elasticsearch_dsl.apps import DEDConfig
+from django_elasticsearch_dsl.actions import ActionBuffer
 
 
 class DocumentRegistry(object):
@@ -29,40 +30,13 @@ class DocumentRegistry(object):
 
         self._indices[index].add(doc_class)
 
-    def update(self, instance, action='index', from_signal=False, **kwargs):
+    def update(self, instance, action='index', **kwargs):
         """
         Update all the Elasticsearch documents attached to this model.
         """
-        connection_actions = defaultdict(set)
-
-        if instance.__class__ in self._models:
-            for doc in self._models[instance.__class__]:
-                if not (from_signal and doc._doc_type.ignore_signals):
-                    doc_inst = doc()
-                    connection_actions[doc_inst.connection].add(
-                        doc_inst._get_actions([instance],
-                                              action=action, **kwargs))
-
-        if instance.__class__ in self._related_models:
-            for model in self._related_models[instance.__class__]:
-                for doc in self._models[model]:
-                    if not (from_signal and doc._doc_type.ignore_signals):
-                        doc_inst = doc()
-                        related = doc_inst.get_instances_from_related(
-                            instance
-                        )
-                        if related:
-                            connection_actions[doc_inst.connection].add(
-                                doc_inst._get_actions(
-                                    [related],  action='index', **kwargs
-                                )
-                            )
-
-        if 'refresh' not in kwargs and DEDConfig.auto_refresh_enabled():
-            kwargs['refresh'] = True
-
-        for connection, actions in iteritems(connection_actions):
-            bulk(client=connection, actions=list(chain(*actions)), **kwargs)
+        actions = ActionBuffer(registry=self)
+        actions.add_model_actions(instance, action)
+        return actions.execute(**kwargs)
 
     def delete(self, instance, **kwargs):
         """
@@ -74,10 +48,13 @@ class DocumentRegistry(object):
         """
         Get all documents in the registry or the documents for a list of models
         """
-        if models is not None:
+        if models is None:
+            return set(chain(*itervalues(self._indices)))
+        elif isinstance(models, ModelBase):
+            return set(self._models.get(models, {}))
+        else:
             return set(chain(*(self._models[model] for model in models
                                if model in self._models)))
-        return set(chain(*itervalues(self._indices)))
 
     def get_models(self):
         """
@@ -96,6 +73,14 @@ class DocumentRegistry(object):
             )
 
         return set(iterkeys(self._indices))
+
+    def get_related_models(self, model):
+        """
+        Get a set of related models.
+
+        Returns a set of models which should be updated when model is updated.
+        """
+        return self._related_models.get(model, {})
 
 
 registry = DocumentRegistry()

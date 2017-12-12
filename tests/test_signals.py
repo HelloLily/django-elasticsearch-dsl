@@ -1,50 +1,133 @@
 from unittest import TestCase
 
 from django.conf import settings
-from django.db import models, connections
+from django.db import connections
 from mock import patch
 
-from django_elasticsearch_dsl.signals import BaseSignalProcessor
+from django_elasticsearch_dsl import signals
+
+import fixtures
 
 
-class MyModel(models.Model):
-
-    class Meta:
-        app_label = 'test'
-
-
-class BaseSignalProcessorTestCase(TestCase):
+class BaseSignalProcessorTestCase(fixtures.WithFixturesMixin, TestCase):
     def setUp(self):
-        self.processor = BaseSignalProcessor(connections)
+        super(BaseSignalProcessorTestCase, self).setUp()
 
-        self.bulk_patcher = patch('django_elasticsearch_dsl.signals.registry')
-        self.registry_mock = self.bulk_patcher.start()
+        self.registry.register(self.index_1, fixtures.DocA1)
+        self.registry.register(self.index_1, fixtures.DocA2)
+        self.registry.register(self.index_2, fixtures.DocB1)
+        self.registry.register(self.index_1, fixtures.DocC1)
+        self.registry.register(self.index_1, fixtures.DocD1)
+
+        self.processor = signals.BaseSignalProcessor(connections)
+        signals.registry = self.registry
+
+        self.bulk_patcher = patch('django_elasticsearch_dsl.actions.bulk')
+        self.bulk_mock = self.bulk_patcher.start()
 
     def tearDown(self):
         self.bulk_patcher.stop()
 
     def test_handle_save(self):
-        instance = MyModel()
+        instance = fixtures.ModelD()
         self.processor.handle_save(None, instance=instance)
-        self.registry_mock.update.assert_called_with(instance, action='index', from_signal=True)
+
+        self.bulk_mock.assert_called_once()
+        cargs, ckwargs = self.bulk_mock.call_args
+
+        self.assertEqual([
+            {
+                '_type': 'doc_d1',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+        ], list(ckwargs['actions']))
+
+        self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
+
+    def test_handle_save_related(self):
+        instance = fixtures.ModelE()
+        self.processor.handle_save(None, instance=instance)
+
+        self.bulk_mock.assert_called_once()
+        cargs, ckwargs = self.bulk_mock.call_args
+
+        self.assertEqual([
+            {
+                '_type': 'doc_d1',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+        ], list(ckwargs['actions']))
+
+        self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
 
     def test_handle_save_no_autosync(self):
         settings.ELASTICSEARCH_DSL_AUTOSYNC = False
 
-        self.processor.handle_save(None, instance=MyModel())
-        self.registry_mock.update.assert_not_called()
+        self.processor.handle_save(None, instance=fixtures.ModelA())
+        self.bulk_mock.assert_not_called()
 
         settings.ELASTICSEARCH_DSL_AUTOSYNC = True
 
+    def test_handle_save_ignore_signals(self):
+        instance = fixtures.ModelC()
+        self.processor.handle_save(None, instance=instance)
+
+        self.bulk_mock.assert_not_called()
+
     def test_handle_delete(self):
-        instance = MyModel()
+        instance = fixtures.ModelD()
         self.processor.handle_delete(None, instance=instance)
-        self.registry_mock.update.assert_called_with(instance, action='delete', from_signal=True)
+
+        self.bulk_mock.assert_called_once()
+        cargs, ckwargs = self.bulk_mock.call_args
+
+        self.assertEqual([
+            {
+                '_type': 'doc_d1',
+                '_id': None,
+                '_source': None,
+                '_op_type': 'delete',
+                '_index': 'None',
+            },
+        ], list(ckwargs['actions']))
+
+        self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
+
+    def test_handle_delete_related(self):
+        instance = fixtures.ModelE()
+        self.processor.handle_delete(None, instance=instance)
+
+        self.bulk_mock.assert_called_once()
+        cargs, ckwargs = self.bulk_mock.call_args
+
+        self.assertEqual([
+            {
+                '_type': 'doc_d1',
+                '_id': None,
+                '_source': {},
+                '_op_type': 'index',
+                '_index': 'None',
+            },
+        ], list(ckwargs['actions']))
+
+        self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
 
     def test_handle_delete_no_autosync(self):
         settings.ELASTICSEARCH_DSL_AUTOSYNC = False
 
-        self.processor.handle_delete(None, instance=MyModel())
-        self.registry_mock.update.assert_not_called()
+        self.processor.handle_delete(None, instance=fixtures.ModelA())
+        self.bulk_mock.assert_not_called()
 
         settings.ELASTICSEARCH_DSL_AUTOSYNC = True
+
+    def test_handle_delete_ignore_signals(self):
+        instance = fixtures.ModelC()
+        self.processor.handle_delete(None, instance=instance)
+
+        self.bulk_mock.assert_not_called()

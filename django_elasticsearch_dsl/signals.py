@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 from django.db import models
 
+from django_elasticsearch_dsl.actions import ActionBuffer
 from django_elasticsearch_dsl.apps import DEDConfig
 from .registries import registry
 
@@ -48,16 +49,42 @@ class BaseSignalProcessor(object):
 
         Given an individual model instance, update the object in the index.
         """
-        if DEDConfig.autosync_enabled():
-            registry.update(kwargs['instance'], action='index', from_signal=True)
+        self._handle_internal(kwargs['instance'], action='index')
 
     def handle_delete(self, sender, **kwargs):
         """Handle delete.
 
         Given an individual model instance, delete the object from index.
         """
-        if DEDConfig.autosync_enabled():
-            registry.update(kwargs['instance'], action='delete', from_signal=True)
+        self._handle_internal(kwargs['instance'], action='delete')
+
+    def _handle_internal(self, instance, action='index'):
+        if not DEDConfig.autosync_enabled():
+            return
+
+        actions = ActionBuffer(registry=registry)
+
+        for doc in registry.get_documents(instance.__class__):
+            if not doc._doc_type.ignore_signals:
+                actions.add_doc_actions(
+                    doc, instance, action=action
+                )
+
+        for related in registry.get_related_models(
+            instance.__class__
+        ):
+            for doc in registry.get_documents(related):
+                if not doc._doc_type.ignore_signals:
+                    rel_instance = doc().get_instances_from_related(
+                        instance
+                    )
+
+                    if rel_instance:
+                        actions.add_doc_actions(
+                            doc, rel_instance, action='index'
+                        )
+
+        return actions.execute()
 
 
 class RealTimeSignalProcessor(BaseSignalProcessor):

@@ -1,7 +1,6 @@
 from mock import Mock, patch
 from unittest import TestCase
 
-from django_elasticsearch_dsl import DocType
 from django_elasticsearch_dsl.registries import DocumentRegistry
 
 import fixtures
@@ -17,11 +16,14 @@ class DocumentRegistryTestCase(fixtures.WithFixturesMixin, TestCase):
         self.registry.register(self.index_1, fixtures.DocC1)
         self.registry.register(self.index_1, fixtures.DocD1)
 
-        self.bulk_patcher = patch('django_elasticsearch_dsl.registries.bulk')
-        self.bulk_mock = self.bulk_patcher.start()
+        self.buffer_patcher = patch(
+            'django_elasticsearch_dsl.registries.ActionBuffer')
+        self.action_buffer = self.buffer_patcher.start()
+        self.action_buffer().add_model_actions = Mock()
+        self.action_buffer().execute = Mock()
 
     def tearDown(self):
-        self.bulk_patcher.stop()
+        self.buffer_patcher.stop()
 
     def test_empty_registry(self):
         registry = DocumentRegistry()
@@ -82,200 +84,49 @@ class DocumentRegistryTestCase(fixtures.WithFixturesMixin, TestCase):
             {self.index_1}
         )
 
+    def test_get_related_models(self):
+        self.assertEqual(
+            self.registry.get_related_models(fixtures.ModelE),
+            {fixtures.ModelD}
+        )
+
+    def test_get_related_models_not_defined(self):
+        self.assertEqual(
+            self.registry.get_related_models(fixtures.ModelB),
+            {}
+        )
+
     def test_get_indices_by_unregister_model(self):
         ModelC = Mock()
         self.assertFalse(self.registry.get_indices([ModelC]))
 
     def test_update_instance(self):
-        class DocA2(DocType):
-            class Meta:
-                model = fixtures.ModelA
+        instance = fixtures.ModelA
 
-        instance = fixtures.ModelA()
+        self.registry.update(instance)
 
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocA2)
-        registry.update(instance)
-
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_a2',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            }
-        ], client=DocA2().connection)
-
-    def test_update_related_instances(self):
-        class DocD(DocType):
-            get_instances_from_related = Mock(return_value=fixtures.ModelD())
-
-            class Meta:
-                model = fixtures.ModelD
-                related_models = [fixtures.ModelE]
-
-        instance = fixtures.ModelE()
-
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocD)
-        registry.update(instance)
-
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_d',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            }
-        ], client=DocD().connection)
-
-    def test_update_related_instances_not_defined(self):
-        class DocD(DocType):
-            get_instances_from_related = Mock(return_value=None)
-
-            class Meta:
-                model = fixtures.ModelD
-                related_models = [fixtures.ModelE]
-
-        instance = fixtures.ModelE()
-
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocD)
-        registry.update(instance)
-
-        self.bulk_mock.assert_not_called()
-
-    def test_update_from_signal(self):
-        class DocD(DocType):
-            get_instances_from_related = Mock(return_value=fixtures.ModelD())
-
-            class Meta:
-                model = fixtures.ModelD
-                related_models = [fixtures.ModelE]
-
-        class DocE(DocType):
-            class Meta:
-                model = fixtures.ModelE
-
-        instance = fixtures.ModelE()
-
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocD)
-        registry.register(self.index_1, DocE)
-        registry.update(instance, from_signal=True)
-
-        self.bulk_mock.assert_not_called()
-
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_e',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            },
-            {
-                '_type': 'doc_d',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            },
-        ], client=DocD().connection)
+        self.action_buffer().add_model_actions.assert_called_with(
+            instance, 'index'
+        )
+        self.action_buffer().execute.assert_called_once()
 
     def test_update_signals_disabled(self):
-        class DocD(DocType):
-            get_instances_from_related = Mock(return_value=fixtures.ModelD())
+        instance = fixtures.ModelC()
 
-            class Meta:
-                model = fixtures.ModelD
-                related_models = [fixtures.ModelE]
-                ignore_signals = True
+        self.registry.update(instance)
 
-        class DocE(DocType):
-            class Meta:
-                model = fixtures.ModelE
-                ignore_signals = True
-
-        instance = fixtures.ModelE()
-
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocD)
-        registry.register(self.index_1, DocE)
-        registry.update(instance)
-
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_e',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            },
-            {
-                '_type': 'doc_d',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            },
-        ], client=DocD().connection)
-
-    def test_update_signals_disabled_from_signal(self):
-        class DocD(DocType):
-            get_instances_from_related = Mock(return_value=fixtures.ModelD())
-
-            class Meta:
-                model = fixtures.ModelD
-                related_models = [fixtures.ModelE]
-                ignore_signals = True
-
-        class DocE(DocType):
-            class Meta:
-                model = fixtures.ModelE
-                ignore_signals = True
-
-        instance = fixtures.ModelE()
-
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocD)
-        registry.register(self.index_1, DocE)
-        registry.update(instance, from_signal=True)
-
-        self.bulk_mock.assert_not_called()
+        self.action_buffer().add_model_actions.assert_called_with(
+            instance, 'index'
+        )
+        self.action_buffer().execute.assert_called_once()
 
     def test_delete_instance(self):
-        class DocA2(DocType):
-            class Meta:
-                model = fixtures.ModelA
+        instance = fixtures.ModelB()
 
-        instance = fixtures.ModelA()
+        self.registry.delete(instance)
 
-        registry = DocumentRegistry()
-        registry.register(self.index_1, DocA2)
-        registry.delete(instance)
+        self.action_buffer().add_model_actions.assert_called_with(
+            instance, 'delete'
+        )
 
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_a2',
-                '_id': None,
-                '_source': None,
-                '_op_type': 'delete',
-                '_index': 'None',
-            }
-        ], client=DocA2().connection)
-
-    def test_delete_related_instances(self):
-        self.registry.delete(fixtures.ModelE())
-
-        self.bulk_mock.assert_called_once_with(actions=[
-            {
-                '_type': 'doc_d1',
-                '_id': None,
-                '_source': {},
-                '_op_type': 'index',
-                '_index': 'None',
-            }
-        ], client=fixtures.DocD1().connection)
+        self.action_buffer().execute.assert_called_once()

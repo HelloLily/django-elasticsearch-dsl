@@ -1,4 +1,4 @@
-from mock import Mock, patch
+from mock import Mock
 
 from django.db import models
 
@@ -63,6 +63,7 @@ class DocC1(DocType):
 
     class Meta:
         model = ModelC
+        ignore_signals = True
 
 
 class DocD1(DocType):
