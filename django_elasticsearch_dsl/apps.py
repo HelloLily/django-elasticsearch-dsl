@@ -15,7 +15,7 @@ class DEDConfig(AppConfig):
         self.module.autodiscover()
         connections.configure(**settings.ELASTICSEARCH_DSL)
         # Setup the signal processor.
-        if not self.signal_processor and self.signals_enabled():
+        if not self.signal_processor and self.autosync_enabled():
             signal_processor_path = getattr(
                 settings,
                 'ELASTICSEARCH_DSL_SIGNAL_PROCESSOR',
@@ -35,7 +35,3 @@ class DEDConfig(AppConfig):
     @classmethod
     def auto_refresh_enabled(cls):
         return getattr(settings, 'ELASTICSEARCH_DSL_AUTO_REFRESH', True)
-
-    @classmethod
-    def signals_enabled(cls):
-        return getattr(settings, 'ELASTICSEARCH_DSL_ENABLE_SIGNALS', True)

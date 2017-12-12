@@ -65,14 +65,6 @@ class BaseSignalProcessorTestCase(fixtures.WithFixturesMixin, TestCase):
 
         self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
 
-    def test_handle_save_no_autosync(self):
-        settings.ELASTICSEARCH_DSL_AUTOSYNC = False
-
-        self.processor.handle_save(None, instance=fixtures.ModelA())
-        self.bulk_mock.assert_not_called()
-
-        settings.ELASTICSEARCH_DSL_AUTOSYNC = True
-
     def test_handle_save_ignore_signals(self):
         instance = fixtures.ModelC()
         self.processor.handle_save(None, instance=instance)
@@ -116,14 +108,6 @@ class BaseSignalProcessorTestCase(fixtures.WithFixturesMixin, TestCase):
         ], list(ckwargs['actions']))
 
         self.assertEqual(fixtures.DocD1().connection, ckwargs['client'])
-
-    def test_handle_delete_no_autosync(self):
-        settings.ELASTICSEARCH_DSL_AUTOSYNC = False
-
-        self.processor.handle_delete(None, instance=fixtures.ModelA())
-        self.bulk_mock.assert_not_called()
-
-        settings.ELASTICSEARCH_DSL_AUTOSYNC = True
 
     def test_handle_delete_ignore_signals(self):
         instance = fixtures.ModelC()

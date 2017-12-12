@@ -59,9 +59,6 @@ class BaseSignalProcessor(object):
         self._handle_internal(kwargs['instance'], action='delete')
 
     def _handle_internal(self, instance, action='index'):
-        if not DEDConfig.autosync_enabled():
-            return
-
         actions = ActionBuffer(registry=registry)
 
         for doc in registry.get_documents(instance.__class__):
