@@ -12,6 +12,8 @@ from tests import fixtures
 class SearchIndexTestCase(fixtures.WithFixturesMixin, TestCase):
     def setUp(self):
         super(SearchIndexTestCase, self).setUp()
+        self.index_1 = Mock()
+        self.index_2 = Mock()
 
         self.out = StringIO()
 

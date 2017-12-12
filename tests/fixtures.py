@@ -2,6 +2,7 @@ from mock import Mock
 
 from django.db import models
 
+from django_elasticsearch_dsl import Index
 from django_elasticsearch_dsl.documents import DocType
 from django_elasticsearch_dsl.registries import DocumentRegistry
 
@@ -80,5 +81,5 @@ class WithFixturesMixin(object):
 
     def setUp(self):
         self.registry = DocumentRegistry()
-        self.index_1 = Mock()
-        self.index_2 = Mock()
+        self.index_1 = Index('index_1')
+        self.index_2 = Index('index_2')
