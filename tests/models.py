@@ -76,7 +76,9 @@ class Ad(models.Model):
     created = models.DateField(auto_now_add=True)
     modified = models.DateField(auto_now=True)
     url = models.URLField()
-    car = models.ForeignKey('Car', related_name='ads',  null=True)
+    car = models.ForeignKey(
+        'Car', related_name='ads', null=True, on_delete=models.CASCADE
+    )
 
     class Meta:
         app_label = 'tests'
