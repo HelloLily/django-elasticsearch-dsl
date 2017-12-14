@@ -20,7 +20,7 @@ class DocumentRegistry(object):
         """Register the model with the registry"""
         self._models[doc_class._doc_type.model].add(doc_class)
 
-        for related in doc_class._doc_type.related_models:
+        for related, method in iteritems(doc_class._doc_type.related_models):
             self._related_models[related].add(doc_class._doc_type.model)
 
         for idx, docs in iteritems(self._indices):
