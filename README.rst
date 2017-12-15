@@ -303,19 +303,19 @@ You can use an ObjectField or a NestedField.
         manufacturer = fields.ObjectField(properties={
             'name': fields.StringField(),
             'country_code': fields.StringField(),
-        }, related_models=[Manufacturer])  # Optional: ensure the Cars are updated when a Manufacturer is updated.
+        }, related_model=Manufacturer)  # Optional: ensure the Cars are updated when a Manufacturer is updated.
         ads = fields.NestedField(properties={
             'description': fields.StringField(analyzer=html_strip),
             'title': fields.StringField(),
             'pk': fields.IntegerField(),
-        }, related_models=[Ad])  # Optional: ensure the Cars are updated when a Manufacturer is updated.
+        }, related_model=Ad)  # Optional: ensure the Cars are updated when a Manufacturer is updated.
 
         def get_instances_from_manufacturer(self, manufacturer):
-            # Mandatory when using related_models: define how the instance should be retrieved from the related model.
+            # Mandatory when using related_model: define how the instance should be retrieved from the related model.
             return manufacturer.car_set.all()
 
         def get_instances_from_ads(self, ad):
-            # Mandatory when using related_models: define how the instance should be retrieved from the related model.
+            # Mandatory when using related_model: define how the instance should be retrieved from the related model.
             return ad.car
 
         class Meta:

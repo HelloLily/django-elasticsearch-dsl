@@ -32,6 +32,7 @@ class DEDField(Field):
     def __init__(self, attr=None, related_model=None, **kwargs):
         super(DEDField, self).__init__(**kwargs)
         self._path = attr.split('.') if attr else []
+        self._related_model = related_model
 
     def __setattr__(self, key, value):
         if key == 'get_value_from_instance':

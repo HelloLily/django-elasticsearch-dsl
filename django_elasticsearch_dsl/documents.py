@@ -126,12 +126,8 @@ class DocTypeMeta(DSLDocTypeMeta):
     def _get_relateds_for_field(cls, name, field):
         related = {}
 
-        if hasattr(field, 'related_model'):
-            try:
-                for related_model in field.related_model:
-                    related[related_model] = name
-            except TypeError:
-                related[field.related_model] = name
+        if hasattr(field, '_related_model') and field._related_model:
+            related[field._related_model] = name
 
         if hasattr(field, 'properties'):
             for property_name, property_field in iteritems(field.properties.to_dict()):
