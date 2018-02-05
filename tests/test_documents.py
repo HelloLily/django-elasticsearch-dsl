@@ -243,17 +243,16 @@ class DocTypeTestCase(TestCase):
         )
 
     def test_model_instance_iterable_update_with_pagination(self):
-        class CarDocument2(DocType):
-            class Meta:
-                model = Car
-                queryset_pagination = 2
-
         doc = CarDocument()
         car1 = Car()
         car2 = Car()
         car3 = Car()
-        with patch('django_elasticsearch_dsl.documents.bulk') as mock:
-            doc.update([car1, car2, car3])
-            self.assertEqual(
-                3, len(list(mock.call_args_list[0][1]['actions']))
-            )
+
+        doc.update([car1, car2, car3])
+
+        self.action_buffer().add_doc_actions.assert_called_with(
+            doc, [car1, car2, car3], 'index',
+        )
+        self.action_buffer().execute.assert_called_with(
+            doc.connection, refresh=True
+        )
