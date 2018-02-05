@@ -60,7 +60,11 @@ class ActionBuffer(object):
         for doc in self._registry.get_related_doc(model.__class__):
             doc_instance = doc()
 
-            related = doc_instance.get_instances_from_related(model)
+            method = getattr(
+                doc_instance, doc._doc_type.related_models[model.__class__]
+            )
+
+            related = method(model)
 
             if related is not None:
                 # Don't respect the original action. We just want to sync,

@@ -35,7 +35,7 @@ class CarDocument(DocType):
         'description': fields.StringField(analyzer=html_strip),
         'title': fields.StringField(),
         'pk': fields.IntegerField(),
-    })
+    }, related_model=Ad)
 
     categories = fields.NestedField(properties={
         'title': fields.StringField(),
@@ -43,9 +43,12 @@ class CarDocument(DocType):
         'icon': fields.FileField(),
     })
 
+    def get_instances_from_ads(self, ad):
+        return ad.car
+
     class Meta:
         model = Car
-        related_models = [Ad, Manufacturer, Category]
+        related_models = [Manufacturer, Category]
         fields = [
             'name',
             'launched',
@@ -58,10 +61,6 @@ class CarDocument(DocType):
             'manufacturer')
 
     def get_instances_from_related(self, related_instance):
-        if isinstance(related_instance, Ad):
-            return related_instance.car
-
-        # otherwise it's a Manufacturer or a Category
         return related_instance.car_set.all()
 
 

@@ -34,6 +34,13 @@ class Manufacturer(models.Model):
         app_label = 'car'
 
 
+class Country(models.Model):
+    name = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = 'car'
+
+
 class CarDocument(DocType):
     color = fields.TextField()
     type = fields.StringField()
@@ -103,8 +110,23 @@ class DocTypeTestCase(TestCase):
         )
 
     def test_related_models_added(self):
-        related_models = CarDocument._doc_type.related_models
-        self.assertEqual([Manufacturer], related_models)
+        class CarDocument2(DocType):
+            manufacturer = fields.ObjectField(properties={
+                'name': fields.StringField(),
+                'country': fields.ObjectField(properties={
+                    'name': fields.StringField()
+                }, related_model=Country)
+            })
+
+            class Meta:
+                model = Car
+                related_models = [Manufacturer]
+
+        related_models = CarDocument2._doc_type.related_models
+        self.assertEqual({
+            Manufacturer: 'get_instances_from_related',
+            Country: 'get_instances_from_manufacturer_country',
+        }, related_models)
 
     def test_duplicate_field_names_not_allowed(self):
         with self.assertRaises(RedeclaredFieldError):

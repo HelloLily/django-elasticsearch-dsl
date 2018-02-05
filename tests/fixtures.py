@@ -37,6 +37,7 @@ class DocA1(DocType):
 
     class Meta:
         model = ModelA
+        doc_type = 'doc_a1'
 
 
 class DocA2(DocType):
@@ -46,6 +47,7 @@ class DocA2(DocType):
 
     class Meta:
         model = ModelA
+        doc_type = 'doc_a2'
 
 
 class DocB1(DocType):
@@ -55,6 +57,7 @@ class DocB1(DocType):
 
     class Meta:
         model = ModelB
+        doc_type = 'doc_b1'
 
 
 class DocC1(DocType):
@@ -65,6 +68,7 @@ class DocC1(DocType):
     class Meta:
         model = ModelC
         ignore_signals = True
+        doc_type = 'doc_c1'
 
 
 class DocD1(DocType):
@@ -75,6 +79,7 @@ class DocD1(DocType):
     class Meta:
         model = ModelD
         related_models = [ModelE]
+        doc_type = 'doc_d1'
 
 
 class WithFixturesMixin(object):

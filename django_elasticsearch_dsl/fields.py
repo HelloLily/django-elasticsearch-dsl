@@ -28,9 +28,10 @@ from .exceptions import VariableLookupError
 
 
 class DEDField(Field):
-    def __init__(self, attr=None, **kwargs):
+    def __init__(self, attr=None, related_model=None, **kwargs):
         super(DEDField, self).__init__(**kwargs)
         self._path = attr.split('.') if attr else []
+        self._related_model = related_model
 
     def __setattr__(self, key, value):
         if key == 'get_value_from_instance':
@@ -88,30 +89,26 @@ class ObjectField(DEDField, Object):
     def _get_inner_field_data(self, obj, field_value_to_ignore=None):
         data = {}
 
-        if hasattr(self, 'properties'):
-            for name, field in self.properties.to_dict().items():
-                if not isinstance(field, DEDField):
-                    continue
+        for name, field in self._get_property_fields().items():
+            if not isinstance(field, DEDField):
+                continue
 
-                if field._path == []:
-                    field._path = [name]
+            if field._path == []:
+                field._path = [name]
 
-                data[name] = field.get_value_from_instance(
-                    obj, field_value_to_ignore
-                )
-        else:
-            for name, field in self._doc_class._doc_type.mapping.properties._params.get('properties', {}).items():
-                if not isinstance(field, DEDField):
-                    continue
-
-                if field._path == []:
-                    field._path = [name]
-
-                data[name] = field.get_value_from_instance(
-                    obj, field_value_to_ignore
-                )
+            data[name] = field.get_value_from_instance(
+                obj, field_value_to_ignore
+            )
 
         return data
+
+    def _get_property_fields(self):
+        if hasattr(self, 'properties'):
+            return self.properties.to_dict()
+        else:
+            return self._doc_class._doc_type.mapping.properties._params.get(
+                'properties', {}
+            )
 
     def get_value_from_instance(self, instance, field_value_to_ignore=None):
         objs = super(ObjectField, self).get_value_from_instance(

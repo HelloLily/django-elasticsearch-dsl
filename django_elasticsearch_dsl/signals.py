@@ -64,7 +64,11 @@ class BaseSignalProcessor(object):
         for doc in registry.get_related_doc(instance.__class__):
             if not doc._doc_type.ignore_signals:
                 doc_instance = doc()
-                related = doc_instance.get_instances_from_related(instance)
+                method = getattr(
+                    doc_instance,
+                    doc._doc_type.related_models[instance.__class__],
+                )
+                related = method(instance)
                 if related is not None:
                     actions.add_doc_actions(doc_instance, related, 'index')
 
@@ -80,7 +84,11 @@ class BaseSignalProcessor(object):
         for doc in registry.get_related_doc(instance.__class__):
             if not doc._doc_type.ignore_signals:
                 doc_instance = doc(related_instance_to_ignore=instance)
-                related = doc_instance.get_instances_from_related(instance)
+                method = getattr(
+                    doc_instance,
+                    doc._doc_type.related_models[instance.__class__],
+                )
+                related = method(instance)
                 if related is not None:
                     actions.add_doc_actions(doc_instance, related, 'index')
 
