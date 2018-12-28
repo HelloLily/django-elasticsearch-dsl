@@ -214,6 +214,7 @@ class DocTypeTestCase(TestCase):
         doc = CarDocument()
         car = Car(name="Type 57", price=5400000.0,
                   not_indexed="not_indexex", pk=51)
+
         doc.update(car)
 
         self.action_buffer().add_doc_actions.assert_called_with(
@@ -242,6 +243,7 @@ class DocTypeTestCase(TestCase):
                   not_indexed="not_indexex", pk=51)
         car2 = Car(name=_("Type 42"), price=50000.0,
                    not_indexed="not_indexex", pk=31)
+
         doc.update([car, car2], action='update')
 
         self.action_buffer().add_doc_actions.assert_called_with(

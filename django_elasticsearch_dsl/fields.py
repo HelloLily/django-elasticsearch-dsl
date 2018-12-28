@@ -2,6 +2,7 @@ import collections
 from types import MethodType
 import warnings
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models.fields.files import FieldFile
 from django.utils.encoding import force_text
@@ -56,6 +57,8 @@ class DEDField(Field):
             ):
                 try:
                     instance = getattr(instance, attr)
+                except ObjectDoesNotExist:
+                    return None
                 except (TypeError, AttributeError):
                     try:
                         instance = instance[int(attr)]
@@ -88,17 +91,28 @@ class DEDField(Field):
 class ObjectField(DEDField, Object):
     def _get_inner_field_data(self, obj, field_value_to_ignore=None):
         data = {}
+        if hasattr(self, 'properties'):
+            for name, field in self.properties.to_dict().items():
+                if not isinstance(field, DEDField):
+                    continue
 
-        for name, field in self._get_property_fields().items():
-            if not isinstance(field, DEDField):
-                continue
+                if field._path == []:
+                    field._path = [name]
 
-            if field._path == []:
-                field._path = [name]
+                data[name] = field.get_value_from_instance(
+                    obj, field_value_to_ignore
+                )
+        else:
+            for name, field in self._doc_class._doc_type.mapping.properties._params.get('properties', {}).items(): # noqa
+                if not isinstance(field, DEDField):
+                    continue
 
-            data[name] = field.get_value_from_instance(
-                obj, field_value_to_ignore
-            )
+                if field._path == []:
+                    field._path = [name]
+
+                data[name] = field.get_value_from_instance(
+                    obj, field_value_to_ignore
+                )
 
         return data
 
@@ -134,6 +148,8 @@ def ListField(field):
     original_get_value_from_instance = field.get_value_from_instance
 
     def get_value_from_instance(self, instance, field_value_to_ignore=None):
+        if not original_get_value_from_instance(instance):
+            return []
         return [value for value in original_get_value_from_instance(instance)]
 
     field.get_value_from_instance = MethodType(get_value_from_instance, field)
@@ -199,7 +215,7 @@ class FileFieldMixin(object):
 
         if isinstance(_file, FieldFile):
             return _file.url if _file else ''
-        return _file
+        return _file if _file else ''
 
 
 # ES5+ has text types Keyword and Text, ES2 has type String.

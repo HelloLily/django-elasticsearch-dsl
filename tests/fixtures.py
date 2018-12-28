@@ -78,8 +78,19 @@ class DocD1(DocType):
 
     class Meta:
         model = ModelD
-        related_models = [ModelE]
+        related_models = [ModelE, ModelB]
         doc_type = 'doc_d1'
+
+
+class DocD2(DocType):
+    get_queryset = Mock(return_value=Mock())
+    update = Mock()
+    get_instances_from_related = Mock(return_value=ModelD())
+
+    class Meta:
+        model = ModelD
+        related_models = [ModelE]
+        doc_type = 'doc_d2'
 
 
 class WithFixturesMixin(object):

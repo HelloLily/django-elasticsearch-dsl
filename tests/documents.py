@@ -82,6 +82,46 @@ class ManufacturerDocument(DocType):
         doc_type = 'manufacturer_document'
 
 
+class CarWithPrepareDocument(DocType):
+    manufacturer = fields.ObjectField(properties={
+        'name': fields.StringField(),
+        'country': fields.StringField(),
+    })
+
+    manufacturer_short = fields.ObjectField(properties={
+        'name': fields.StringField(),
+    })
+
+    class Meta:
+        model = Car
+        related_models = [Manufacturer]
+        index = 'car_with_prepare_index'
+        fields = [
+            'name',
+            'launched',
+            'type',
+        ]
+
+    def prepare_manufacturer_with_related(self, car, related_to_ignore):
+        if (car.manufacturer is not None and car.manufacturer !=
+                related_to_ignore):
+            return {
+                'name': car.manufacturer.name,
+                'country': car.manufacturer.country(),
+            }
+        return {}
+
+    def prepare_manufacturer_short(self, car):
+        if car.manufacturer is not None:
+            return {
+                'name': car.manufacturer.name,
+            }
+        return {}
+
+    def get_instances_from_related(self, related_instance):
+        return related_instance.car_set.all()
+
+
 ad_index = Index('test_ads').settings(**index_settings)
 
 

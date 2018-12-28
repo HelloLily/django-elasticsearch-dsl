@@ -1,7 +1,7 @@
 # Config file for automatic testing at travis-ci.org
 
 language: python
-python: 3.6
+python: 3.7
 
 dist: trusty # default "precise" distro doesn't include Java 8 for Elasticsearch 5
 
